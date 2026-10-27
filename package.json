@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "start:dev": "nodemon --watch src --ext ts --exec ts-node src/main.ts",
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d src/database.ts",
