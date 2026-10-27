@@ -1,0 +1,110 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  name      String   @db.VarChar
+  email     String   @unique @db.VarChar
+  password  String   @db.VarChar
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  orders  Order[]
+  reviews Review[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  name        String   @unique @db.VarChar
+  description String   @default("") @db.VarChar
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  name         String   @db.VarChar
+  brand        String   @default("") @db.VarChar
+  category     String   @db.VarChar
+  description  String   @default("") @db.VarChar
+  image        String   @default("") @db.VarChar
+  images       Json     @default("[]") @db.JsonB
+  price        Float    @db.DoublePrecision
+  countInStock Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  categoryRel Category @relation(fields: [category], references: [name], onUpdate: Cascade, onDelete: Restrict)
+  reviews     Review[]
+
+  @@index([category])
+  @@map("products")
+}
+
+model Coupon {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  code                 String   @unique @db.VarChar
+  discount             Float    @db.DoublePrecision
+  expirationDate       DateTime @db.Timestamptz
+  applicableCategories Json     @default("[]") @db.JsonB
+  createdAt            DateTime @default(now()) @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@map("coupons")
+}
+
+model Order {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  userId          String    @db.Uuid
+  orderItems      Json      @db.JsonB
+  shippingAddress Json      @db.JsonB
+  paymentMethod   String    @db.VarChar
+  itemsPrice      Float     @db.DoublePrecision
+  shippingPrice   Float     @db.DoublePrecision
+  taxPrice        Float     @db.DoublePrecision
+  discountAmount  Float     @default(0) @db.DoublePrecision
+  couponCode      String?   @db.VarChar
+  totalPrice      Float     @db.DoublePrecision
+  isPaid          Boolean   @default(false)
+  isDelivered     Boolean   @default(false)
+  isCancelled     Boolean   @default(false)
+  paidAt          DateTime? @db.Timestamptz
+  deliveredAt     DateTime? @db.Timestamptz
+  createdAt       DateTime  @default(now()) @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model Review {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @map("_id") @db.Uuid
+  userId    String   @db.Uuid
+  productId String   @db.Uuid
+  name      String   @db.VarChar
+  rating    Int
+  comment   String   @db.VarChar
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("reviews")
+}

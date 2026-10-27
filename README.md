@@ -17,10 +17,16 @@ Sửa `.env`: cấu hình `DATABASE_URL`, đặt `JWT_SECRET` ngẫu nhiên ít 
 Nếu dùng Docker, chạy `docker compose up -d`. Nếu PostgreSQL đã chạy trên máy, tạo database `ecommerce` và chỉnh `DATABASE_URL`. Không khởi động thêm container trên cổng 5432 đang được sử dụng. Tài khoản migration cần quyền tạo bảng và extension `uuid-ossp`.
 
 ```powershell
-npm.cmd run db:migrate
-npm.cmd run seed
-npm.cmd run start:dev
+npm.cmd run prisma:push      # Đồng bộ schema và tạo bảng qua Prisma
+npm.cmd run seed             # Khởi tạo dữ liệu mẫu
+npm.cmd run start:dev        # Khởi chạy server development
 ```
+
+Ngoài ra với Prisma có thể dùng:
+- `npm.cmd run prisma:studio` : Mở giao diện trực quan Prisma Studio quản lý dữ liệu
+- `npm.cmd run prisma:generate` : Tự động tạo Prisma Client mới nhất
+- `npm.cmd run prisma:migrate` : Tạo migration có phiên bản
+
 
 Seed tạo admin và sản phẩm mẫu; không thay mật khẩu admin đã tồn tại. Schema dùng migration, không dùng `synchronize`.
 

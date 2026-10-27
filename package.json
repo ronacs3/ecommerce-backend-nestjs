@@ -8,19 +8,42 @@
     "start:dev": "nodemon --watch src --ext ts --exec ts-node src/main.ts",
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d src/database.ts",
     "seed": "ts-node src/seed.ts",
-    "test": "npm run build && node --test test/*.test.js"
+    "test": "npm run build && node --test test/*.test.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.0", "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0", "@nestjs/jwt": "^11.0.0",
-    "@nestjs/swagger": "^11.0.0", "@nestjs/throttler": "^6.4.0",
-    "bcryptjs": "^3.0.0", "class-transformer": "^0.5.1", "class-validator": "^0.14.2",
-    "dotenv": "^16.4.7", "helmet": "^8.0.0", "multer": "^2.0.0",
-    "pg": "^8.13.0", "reflect-metadata": "^0.2.2", "rxjs": "^7.8.1", "typeorm": "^0.3.20"
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/swagger": "^11.0.0",
+    "@nestjs/throttler": "^6.4.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "bcryptjs": "^3.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^16.4.7",
+    "helmet": "^8.0.0",
+    "multer": "^2.0.0",
+    "pg": "^8.13.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0", "@types/multer": "^2.0.0", "@types/node": "^22.0.0",
-    "typescript": "^5.7.0", "ts-node": "^10.9.2", "nodemon": "^3.1.0"
+    "@types/express": "^5.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "nodemon": "^3.1.0",
+    "prisma": "^7.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
