@@ -31,7 +31,12 @@ async function bootstrap() {
     // Read-only filesystem (e.g. Vercel, AWS Lambda Serverless)
   }
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false,
+    }),
+  );
   app.enableCors({
     origin: (process.env.FRONTEND_URL || 'http://localhost:3000')
       .split(',')
@@ -119,6 +124,14 @@ Hệ thống sử dụng cơ chế xác thực dựa trên **JSON Web Token (JWT
       docExpansion: 'list',
     },
     customSiteTitle: 'E-Commerce API Documentation',
+    customCssUrl:
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui.min.css',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui-bundle.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui-standalone-preset.js',
+    ],
+    customfavIcon:
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/favicon-32x32.png',
   });
 
   const port = Number(process.env.PORT || 5000);
