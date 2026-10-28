@@ -22,9 +22,14 @@ async function bootstrap() {
     throw new Error('Set JWT_SECRET to a random secret of at least 32 characters');
   }
 
-  mkdirSync(join(process.cwd(), 'uploads'), { recursive: true });
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  try {
+    mkdirSync(join(process.cwd(), 'uploads'), { recursive: true });
+    app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+  } catch {
+    // Read-only filesystem (e.g. Vercel, AWS Lambda Serverless)
+  }
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.enableCors({
@@ -37,7 +42,6 @@ async function bootstrap() {
   // Strip snapshots and displayed totals supplied by the frontend; calculate them from database prices.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new DatabaseErrorFilter());
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
 
   // Swagger OpenAPI Documentation Configuration
   const config = new DocumentBuilder()

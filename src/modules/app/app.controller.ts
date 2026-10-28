@@ -18,9 +18,12 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DataSource } from 'typeorm';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { randomUUID } from 'crypto';
-import { readFile, unlink } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Public, Admin } from '../../common/decorators';
 import { ErrorResponseDto } from '../../common/dto';
 import { MessageDto, HealthResponseDto, UploadResponseDto } from './dto';
@@ -93,7 +96,7 @@ export class AppController {
   @ApiOperation({
     summary: 'Tải lên hình ảnh sản phẩm (Chỉ dành cho Admin)',
     description:
-      'Tải lên một file ảnh định dạng PNG, JPEG hoặc WebP. Giới hạn dung lượng tối đa 5MB. Trả về đường dẫn URL công khai để sử dụng cho sản phẩm.',
+      'Tải lên một file ảnh định dạng PNG, JPEG hoặc WebP. Dung lượng tối đa 5MB. Tự động lưu lên Cloudinary (nếu có cấu hình) hoặc lưu cục bộ.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -132,20 +135,7 @@ export class AppController {
   })
   @UseInterceptors(
     FileInterceptor('image', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (_req, file, cb) =>
-          cb(
-            null,
-            `${randomUUID()}.${
-              file.mimetype === 'image/png'
-                ? 'png'
-                : file.mimetype === 'image/webp'
-                  ? 'webp'
-                  : 'jpg'
-            }`,
-          ),
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
       fileFilter: (_req, file, cb) => {
         if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) {
@@ -159,10 +149,11 @@ export class AppController {
     }),
   )
   async upload(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
+    if (!file || !file.buffer) {
       throw new BadRequestException('Thiếu ảnh');
     }
-    const bytes = await readFile(file.path);
+
+    const bytes = file.buffer;
     const valid =
       file.mimetype === 'image/png'
         ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
@@ -170,12 +161,56 @@ export class AppController {
           ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
           : bytes.toString('ascii', 0, 4) === 'RIFF' &&
             bytes.toString('ascii', 8, 12) === 'WEBP';
+
     if (!valid) {
-      await unlink(file.path);
       throw new BadRequestException('Nội dung file không phải ảnh hợp lệ');
     }
-    return {
-      image: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/uploads/${file.filename}`,
-    };
+
+    // 1. Tải lên Cloudinary nếu có cấu hình biến môi trường
+    if (process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_URL) {
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+          api_key: process.env.CLOUDINARY_API_KEY,
+          api_secret: process.env.CLOUDINARY_API_SECRET,
+        });
+      }
+      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'ecommerce' },
+          (error, res) => {
+            if (error || !res) return reject(error || new Error('Upload to Cloudinary failed'));
+            resolve(res);
+          },
+        );
+        stream.end(file.buffer);
+      });
+      return { image: result.secure_url };
+    }
+
+    // 2. Fallback: Lưu vào thư mục uploads cục bộ (hoặc /tmp nếu chạy Serverless)
+    const ext =
+      file.mimetype === 'image/png'
+        ? 'png'
+        : file.mimetype === 'image/webp'
+          ? 'webp'
+          : 'jpg';
+    const filename = `${randomUUID()}.${ext}`;
+
+    try {
+      const uploadDir = join(process.cwd(), 'uploads');
+      await mkdir(uploadDir, { recursive: true });
+      await writeFile(join(uploadDir, filename), file.buffer);
+      return {
+        image: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/uploads/${filename}`,
+      };
+    } catch {
+      const tmpUploadDir = join(tmpdir(), 'uploads');
+      await mkdir(tmpUploadDir, { recursive: true });
+      await writeFile(join(tmpUploadDir, filename), file.buffer);
+      return {
+        image: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/uploads/${filename}`,
+      };
+    }
   }
 }
